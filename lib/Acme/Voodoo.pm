@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use Carp qw( croak );
 
-our $VERSION = 0.2;
+our $VERSION = 0.3;
 
 my %dolls = ();
 my %deads = ();
@@ -18,7 +18,7 @@ Acme::Voodoo - Do bad stuff to your objects
 =head1 SYNOPSIS
 
     use Acme::Voodoo;
-    my $voodoo = Acme::Voodoo( 'CGI' );
+    my $voodoo = Acme::Voodoo->new( 'CGI' );
     
     print ref( $voodoo );	## prints Acme::Voodoo::Doll_1
     print $voodoo->header();	## same as calling CGI::header()
