@@ -2,15 +2,14 @@ package Acme::Voodoo;
 
 use strict;
 use warnings;
-use base qw( Exporter );
 use Carp qw( croak );
 
-our @EXPORT = qw( voodoo_doll voodoo_pins voodoo_zombie voodoo_kill );
-our $VERSION = 0.1;
+our $VERSION = 0.2;
 
 my %dolls = ();
-my %dead = ();
-my %zombie = ();
+my %deads = ();
+my %zombies = ();
+my $dreamTime = 0;
 
 =head1 NAME
 
@@ -29,8 +28,8 @@ Acme::Voodoo - Do bad stuff to your objects
     $voodoo->zombie();		## make our program sleep for a while
 				## the next time a method is called
 
-    $voodoo->kill();		## or make our program die the next time it is 
-				## called 
+    $voodoo->kill();		## or make our program die the next 
+				## time it is called 
 
 =head1 ABSTRACT
 
@@ -52,17 +51,17 @@ Acme::Voodoo is mostly "left handed" and somewhat "Hollywood-ish" but can
 bring a bit of spice to your programs. You can cast fairly simple spells on 
 your program to make it hard to understand, or to make it die a horrible 
 death. If you would like to add a spell please email me a patch. Or send it
-via astral-projection. Acme::Voodoo is essentially an experiment in symbol table
-gone horribly wrong.
+via astral-projection. Acme::Voodoo is essentially an experiment in 
+symbol tables gone horribly wrong.
 
-=head1 EXPORTS
+=head1 METHODS 
 
 =head2 new()
 
 Creates a voodoo doll object. You must pass the namespace of your subject. If 
 your subject isn't within spell distance (the class can't be found) an 
-exception will be thrown. Otherwise you get back your doll, a Acme::VoodooDoll 
-object.
+exception will be thrown. Otherwise you get back your doll, an
+Acme::Voodoo::Doll object.
 
     use Acme::Voodoo;
     my $doll = Acme::Voodoo->new( 'CGI' );
@@ -81,18 +80,17 @@ sub new {
     croak "I can't find $targetClass to put a spell on" if !$targetClass or $@; 
 
     ## if the class doesn't have a new constructor we can't cast our spell 
-    return( undef ) if ! exists( ${ "${targetClass}::" }{ 'new' } );
+    croak "curses, $targetClass is resilient to my spell" 
+	if ! exists( ${ "${targetClass}::" }{ 'new' } );
 
     ## determine a new namespace for our voodoo doll
     my $dollNum = scalar( keys( %dolls ) );
     my $dollClass = "Acme::Voodoo::Doll_$dollNum";
 
     ## go through our target namespace and copy non subroutines
+    ## into our Acme::Voodoo::Doll_X namespace
     while  ( ($k,$v) = each %{ "${targetClass}::" } ) {
-	
-	## add non subroutines to our voodoo doll namespace
 	if ( !defined(&{$v}) ) { ${ "${dollClass}::" }{ $k } = $v; }
-
     }
 
     ## create an instance of our target class, and stash it away
@@ -142,31 +140,33 @@ sub pins {
 =head2 zombie()
 
 A method to turn your object into a zombie. The next method call on the object
-will cause your program to go to sleep for into limbo for an unpredictable
-amount of time. When it wakes up, it will do what you asked it to do, and will
-feel fine from then on, having no memory of what happened.
+will cause your program to go into limbo for an unpredictable amount of time. 
+When it wakes up, it will do what you asked it to do, and will feel fine from 
+then on, having no memory of what happened. If you know how long you want
+your target to go to sleep for, pass the number of seconds in.
 
 =cut 
 
 sub zombie {
-    my $self = shift;
-    $zombie{ ref($self) } = 1;
+    my ( $self, $sleep ) = @_;
+    $zombies{ ref($self) } = 1;
+    $dreamTime = $sleep if $sleep;
     return(1);
 }
 
 =head2 kill()
 
-When you kill your doll, the next time someone calls a method on it it will 
+When you kill your doll the next time someone calls a method on it it will 
 cause your program to die a horrible and painful death.
 
     $doll->kill();
-    $doll->method();	    ## cause die to be thrown.
+    $doll->method();	    ## arrrrrggggghhhh!! 
 
 =cut
 
 sub kill {
     my $self = shift;
-    $dead{ ref($self) } = 1;
+    $deads{ ref($self) } = 1;
     return( 1 );
 }
 
@@ -191,14 +191,14 @@ sub AUTOLOAD {
 
     ## if we're dead, then we're gonna die
     croak( "arrrghgghg, an evil curse has struck me down!\n" )
-	if $dead{ ref($doll) };
+	if $deads{ ref($doll) };
 
     ## if we are a zombie, go to sleep for a random amount of time
     ## and then wake up remembering nothing
-    if ( $zombie{ ref($doll) } ) {
-	print STDERR "i feel as if I'm walking into a strange dream\n";
-	sleep( int( rand(100) ) );
-	$zombie{ ref($doll) } = undef;
+    if ( $zombies{ ref($doll) } ) {
+	print STDERR "I feel as if I'm walking into a strange dream\n";
+	sleep( $dreamTime || int( rand(100) ) * 10 );
+	$zombies{ ref($doll) } = undef;
     }
 
     ## strip namespace off of method
@@ -210,9 +210,13 @@ sub AUTOLOAD {
     
     no strict;
     return( undef ) if $method eq 'DESTROY';
+
+    ## call the method on the real object, with the right args
+    ## note: we will return the return value of our method call
     &{ "${class}::${method}" }( $object, @args );
 
 }
 
+## no more voodoo
 
 1;

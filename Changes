@@ -1,4 +1,7 @@
 Revision history for Perl extension PHP::Include.
 
-0.01  Tue Feb 06 12:23:00 2002
+0.02  Thu Feb 13 07:52:10 2003
+	- doc changes, added test for zombie
+
+0.01  Tue Feb 06 12:23:00 2003
 	- first stab 
